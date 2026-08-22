@@ -1,10 +1,12 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
 
 var corsOptions = {
-  origin: "http://localhost:8081"
+  origin: process.env.CORS_ORIGIN
 };
 
 app.use(cors(corsOptions));
@@ -17,13 +19,21 @@ app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
 
-db.sequelize.sync()
-  .then(() => {
-    console.log("Synced db.");
-  })
-  .catch((err) => {
-    console.log("Failed to sync db: " + err.message);
-  });
+// Função para tentar sincronizar o banco de dados (Sequelize) com retry automatico caso falhe
+function syncDbWithRetry(retriesLeft = 10, delayMs = 3000) {
+  db.sequelize.sync()
+    .then(() => {
+      console.log("Synced db.");
+    })
+    .catch((err) => {
+      console.log("Failed to sync db: " + err.message);
+      if (retriesLeft > 0) {
+        setTimeout(() => syncDbWithRetry(retriesLeft - 1, delayMs), delayMs);
+      }
+    });
+}
+
+syncDbWithRetry();
 
 // // drop the table if it already exists
 // db.sequelize.sync({ force: true }).then(() => {
@@ -38,7 +48,7 @@ app.get("/", (req, res) => {
 require("./app/routes/turorial.routes")(app);
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
