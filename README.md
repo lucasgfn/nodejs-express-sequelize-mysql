@@ -42,7 +42,7 @@ O projeto é uma API REST CRUD (`Tutorial`) em Node.js + Express + Sequelize + M
 - **Variáveis de ambiente**: elimina credenciais em texto puro no repositório (risco de segurança básico) e é pré-requisito para rodar o mesmo container em dev/homologação/produção sem alterar código.
 - **Containerização**: elimina o problema “funciona na minha máquina”, fixa a versão do MySQL usada por todos os desenvolvedores e cria uma base para deploy em qualquer orquestrador (Compose, Swarm, Kubernetes) no futuro.
 
-## 2. Ambiente e Pré-requisitos
+## 2. Pré-requisitos
 
 Ferramentas necessárias na máquina de quem for executar a migração:
 
@@ -68,9 +68,12 @@ Nenhum SDK ou ferramenta de sistema adicional é necessária além do Docker (o 
 
 > Todos os comandos abaixo foram executados e validados neste guia a partir da raiz do repositório.
 
-### 3.1. Preparar um ponto de restauração
+### 3.1. Clonar o repositório e preparar um ponto de restauração
 
 ```bash
+git clone https://github.com/bezkoder/nodejs-express-sequelize-mysql.git
+cd nodejs-express-sequelize-mysql
+
 git checkout -b migration
 git tag pre-migration-baseline
 ```
@@ -105,15 +108,15 @@ Adicionar `engines`, o script `start`, o script `test:smoke` e atualizar as vers
 
 ### 3.3. Mover a configuração de banco para variáveis de ambiente
 
-`app/config/db.config.js` passa a ler `process.env`, mantendo os valores antigos como *fallback* para não quebrar quem já rodava localmente sem `.env`:
+`app/config/db.config.js` passa a ler exclusivamente `process.env` — não há mais valores fixos no código, então o `.env` (ou as variáveis de ambiente equivalentes) passa a ser obrigatório para a aplicação conectar ao banco:
 
 ```js
 module.exports = {
-  HOST: process.env.DB_HOST 
-  PORT: process.env.DB_PORT 
-  USER: process.env.DB_USER 
-  PASSWORD: process.env.DB_PASSWORD 
-  DB: process.env.DB_NAME 
+  HOST: process.env.DB_HOST,
+  PORT: process.env.DB_PORT,
+  USER: process.env.DB_USER,
+  PASSWORD: process.env.DB_PASSWORD,
+  DB: process.env.DB_NAME,
   dialect: "mysql",
   pool: { max: 5, min: 0, acquire: 30000, idle: 10000 }
 };
@@ -127,10 +130,10 @@ module.exports = {
 require("dotenv").config();
 // ...
 var corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:8081"
+  origin: process.env.CORS_ORIGIN
 };
 // ...
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 ```
 
 `server.js` também troca o `db.sequelize.sync()` de tentativa única por um *retry* com backoff. Isso não é opcional em Docker Compose: a imagem oficial do MySQL sobe um servidor temporário (só via socket Unix, sem rede) para rodar os scripts de inicialização, reporta *healthy* nesse estado, derruba esse servidor temporário e só então sobe o servidor definitivo com a rede habilitada — nesse intervalo, `depends_on: condition: service_healthy` já liberou o container da app, e uma tentativa única de `sync()` pode cair exatamente na janela em que a porta 3306 ainda está de pé caindo (`ECONNREFUSED`), deixando a tabela `tutorials` nunca criada. Isso foi reproduzido de verdade ao validar este guia (ver seção 4.1):
