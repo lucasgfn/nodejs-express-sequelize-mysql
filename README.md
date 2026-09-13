@@ -457,7 +457,6 @@ Os três colegas revisaram a versão anterior deste guia e **nenhum apontou corr
 | 2 | "Trabalho bem organizado e bem claro de ser compreendido, cumpre todos os requisitos" | Organização e clareza | Nenhuma alteração exigida. Como reforço de navegabilidade — e não correção — foram acrescentados sumário e a seção 5 consolidando riscos que antes apareciam dispersos |
 | 3 | "Bem detalhado e com plano de validação e teste e rollback bem definido"; "boa explicação e descrição dos passos a serem seguidos, migração congruente" | Validação, teste, rollback e congruência dos passos | Nenhuma alteração exigida. A congruência elogiada motivou uma auditoria de coerência documento↔código, que expôs os itens B1 e B5 da Parte B |
 
-**Consequência metodológica:** um peer review sem apontamentos não autoriza entregar a versão final idêntica à revisada — apenas desloca a responsabilidade da melhoria para o autor. Por isso foi conduzida uma autorrevisão técnica, com o próprio guia lido como se fosse de terceiros e o código auditado linha a linha à procura de divergências entre o que o documento promete e o que o repositório faz. O resultado está na Parte B.
 
 ### Parte B — Melhorias adotadas
 
