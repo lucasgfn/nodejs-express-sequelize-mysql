@@ -1,5 +1,28 @@
 require("dotenv").config();
 
+//Garantido que subirá na porta correta e não em uma aleatório sem o uso do env
+const REQUIRED_ENV = [
+  "PORT",
+  "CORS_ORIGIN",
+  "DB_HOST",
+  "DB_PORT",
+  "DB_USER",
+  "DB_PASSWORD",
+  "DB_NAME"
+];
+
+const missingEnv = REQUIRED_ENV.filter((name) => !process.env[name]);
+if (missingEnv.length > 0) {
+  console.error(
+    "ERRO DE CONFIGURACAO: variaveis de ambiente obrigatorias ausentes: " +
+      missingEnv.join(", ")
+  );
+  console.error(
+    "Copie .env.example para .env e preencha os valores antes de subir a aplicacao."
+  );
+  process.exit(1);
+}
+
 const express = require("express");
 const cors = require("cors");
 
@@ -26,10 +49,20 @@ function syncDbWithRetry(retriesLeft = 10, delayMs = 3000) {
       console.log("Synced db.");
     })
     .catch((err) => {
-      console.log("Failed to sync db: " + err.message);
+      console.error("Failed to sync db: " + err.message);
       if (retriesLeft > 0) {
+        console.error(
+          `Nova tentativa em ${delayMs}ms (${retriesLeft} restantes).`
+        );
         setTimeout(() => syncDbWithRetry(retriesLeft - 1, delayMs), delayMs);
+        return;
       }
+
+      console.error(
+        "ERRO FATAL: nao foi possivel sincronizar o banco apos todas as tentativas. " +
+          "Encerrando o processo para que a falha fique visivel em 'docker compose ps'."
+      );
+      process.exit(1);
     });
 }
 
